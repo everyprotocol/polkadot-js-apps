@@ -8,6 +8,7 @@ import React, { useEffect, useState } from 'react';
 import { combineLatest, map } from 'rxjs';
 
 import { keyring } from '@polkadot/ui-keyring';
+import { settings } from '@polkadot/ui-settings';
 import { u8aToHex } from '@polkadot/util';
 import { decodeAddress } from '@polkadot/util-crypto';
 
@@ -40,21 +41,20 @@ export const KeyringCtx = React.createContext<State>(EMPTY);
  * The first check ensures that we never have dupes in the original. The second
  * ensures that e.g. an address is not also available as an account
  **/
-function filter (isEthereum: boolean, items: string[], others: string[] = []): string[] {
-  const allowedLength = isEthereum
-    ? 20
-    : 32;
-
+function filter(keyringFilter: string, items: string[], others: string[] = []): string[] {
+  const subKeyLens = [33, 32];
+  const ethKeyLens = [20];
+  const keyLensAllowed = keyringFilter == 'ethereum' ? ethKeyLens : keyringFilter == 'substrate' ? subKeyLens : [...subKeyLens, ...ethKeyLens];
   return items.reduce<string[]>((result, a) => {
     if (!result.includes(a) && !others.includes(a)) {
       try {
-        if (decodeAddress(a).length >= allowedLength) {
+        if (keyLensAllowed.includes(decodeAddress(a).length)) {
           result.push(a);
         } else {
-          console.warn(`Not adding address ${a}, not in correct format for chain (requires publickey from address)`);
+          console.warn(`Address ${a} omitted(keyringFilter=${keyringFilter})`);
         }
       } catch {
-        console.error(a, allowedLength);
+        console.error(a, keyLensAllowed);
       }
     }
 
@@ -89,8 +89,8 @@ function createCheck (items: string[]): Accounts['isAccount'] {
     !!a && items.includes(a.toString());
 }
 
-function extractAccounts (isEthereum: boolean, accounts: SubjectInfo = {}): Accounts {
-  const allAccounts = filter(isEthereum, Object.keys(accounts));
+function extractAccounts (keyringFilter: string, accounts: SubjectInfo = {}): Accounts {
+  const allAccounts = filter(keyringFilter, Object.keys(accounts));
 
   return {
     allAccounts,
@@ -101,8 +101,8 @@ function extractAccounts (isEthereum: boolean, accounts: SubjectInfo = {}): Acco
   };
 }
 
-function extractAddresses (isEthereum: boolean, addresses: SubjectInfo = {}, accounts: string[]): Addresses {
-  const allAddresses = filter(isEthereum, Object.keys(addresses), accounts);
+function extractAddresses (keyringFilter: string, addresses: SubjectInfo = {}, accounts: string[]): Addresses {
+  const allAddresses = filter(keyringFilter, Object.keys(addresses), accounts);
 
   return {
     allAddresses,
@@ -114,7 +114,7 @@ function extractAddresses (isEthereum: boolean, addresses: SubjectInfo = {}, acc
 }
 
 export function KeyringCtxRoot ({ children }: Props): React.ReactElement<Props> {
-  const { isApiReady, isEthereum } = useApi();
+  const { isApiReady } = useApi();
   const [state, setState] = useState(EMPTY);
 
   useEffect((): () => void => {
@@ -124,24 +124,23 @@ export function KeyringCtxRoot ({ children }: Props): React.ReactElement<Props> 
     // info to determine which type of addresses we can use (before subscribing)
     if (isApiReady) {
       sub = combineLatest([
-        keyring.accounts.subject.pipe(
-          map((accInfo) => extractAccounts(isEthereum, accInfo))
-        ),
+        keyring.accounts.subject,
         keyring.addresses.subject
-      ])
-        .pipe(
-          map(([accounts, addrInfo]): State => ({
-            accounts,
-            addresses: extractAddresses(isEthereum, addrInfo, accounts.allAccounts)
-          }))
-        )
-        .subscribe((state) => setState(state));
+      ]).pipe(
+        map(([accInfo, addrInfo]): State => {
+          const { keyringFilter } = settings.get();
+          const accounts = extractAccounts(keyringFilter, accInfo);
+          const addresses = extractAddresses(keyringFilter, addrInfo, accounts.allAccounts);
+
+          return { accounts, addresses };
+        })
+      ).subscribe(setState);
     }
 
     return (): void => {
       sub && sub.unsubscribe();
     };
-  }, [isApiReady, isEthereum]);
+  }, [isApiReady]);
 
   return (
     <KeyringCtx.Provider value={state}>

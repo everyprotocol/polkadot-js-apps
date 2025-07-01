@@ -11,7 +11,7 @@ import { AddressInfo, AddressSmall, Button, ChainLock, Columar, Forget, LinkExte
 import { MATCHERS } from '@polkadot/react-components/AccountName';
 import { useApi, useBalancesAll, useDeriveAccountInfo, useToggle } from '@polkadot/react-hooks';
 import { keyring } from '@polkadot/ui-keyring';
-import { isFunction } from '@polkadot/util';
+import { isFunction, u8aFixLength, u8aToHex } from '@polkadot/util';
 
 import { useTranslation } from '../translate.js';
 
@@ -54,7 +54,8 @@ function Address ({ address, className = '', filter, isFavorite, isVisible, togg
   const { t } = useTranslation();
   const api = useApi();
   const info = useDeriveAccountInfo(address);
-  const balancesAll = useBalancesAll(address);
+  const accountId32 = u8aToHex(u8aFixLength(info?.accountId || new Uint8Array(), 256));
+  const balancesAll = useBalancesAll(accountId32);
   const [tags, setTags] = useState<string[]>([]);
   const [accName, setAccName] = useState('');
   const [current, setCurrent] = useState<KeyringAddress | null>(null);

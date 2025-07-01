@@ -73,6 +73,15 @@ function General ({ className = '' }: Props): React.ReactElement<Props> {
     [t]
   );
 
+  const keyringFilterOptions = useMemo(
+    () => [
+      { text: t('Only substrate accounts'), value: 'substrate' },
+      { text: t('Only ethereum accounts'), value: 'ethereum' },
+      { text: t('All accounts'), value: 'all' }
+    ],
+    [t]
+  );
+
   const themeOptions = useMemo(
     () => [
       { text: t('Light theme'), value: 'light' },
@@ -151,6 +160,14 @@ function General ({ className = '' }: Props): React.ReactElement<Props> {
           label={t('address prefix')}
           onChange={_handleChange('prefix')}
           options={prefixOptions}
+        />
+      </div>
+      <div className='ui--row'>
+        <Dropdown
+          defaultValue={state.keyringFilter}
+          label={t('account filter')}
+          onChange={_handleChange('keyringFilter')}
+          options={keyringFilterOptions}
         />
       </div>
       {!isIpfs && !isElectron && (

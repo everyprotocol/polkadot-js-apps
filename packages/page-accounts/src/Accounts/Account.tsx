@@ -23,7 +23,7 @@ import { AddressInfo, AddressSmall, Badge, Button, ChainLock, Columar, CryptoTyp
 import { useAccountInfo, useApi, useBalancesAll, useBestNumber, useCall, useLedger, useQueue, useStakingInfo, useToggle } from '@polkadot/react-hooks';
 import { keyring } from '@polkadot/ui-keyring';
 import { settings } from '@polkadot/ui-settings';
-import { BN, BN_ZERO, formatBalance, formatNumber, isFunction } from '@polkadot/util';
+import { BN, BN_ZERO, formatBalance, formatNumber, isFunction, u8aFixLength, u8aToHex } from '@polkadot/util';
 
 import Backup from '../modals/Backup.js';
 import ChangePass from '../modals/ChangePass.js';
@@ -159,19 +159,20 @@ const transformRecovery = {
   transform: (opt: Option<RecoveryConfig>) => opt.unwrapOr(null)
 };
 
-function Account ({ account: { address, meta }, className = '', delegation, filter, isFavorite, onStatusChange, proxy, setBalance, toggleFavorite }: Props): React.ReactElement<Props> | null {
+function Account ({ account: { address, meta, publicKey }, className = '', delegation, filter, isFavorite, onStatusChange, proxy, setBalance, toggleFavorite }: Props): React.ReactElement<Props> | null {
   const { t } = useTranslation();
   const [isExpanded, toggleIsExpanded] = useToggle(false);
   const { queueExtrinsic } = useQueue();
   const { api, apiIdentity, enableIdentity, isDevelopment: isDevelopmentApiProps, isEthereum: isEthereumApiProps } = useApi();
   const { getLedger } = useLedger();
   const bestNumber = useBestNumber();
-  const balancesAll = useBalancesAll(address);
-  const stakingInfo = useStakingInfo(address);
-  const democracyLocks = useCall<DeriveDemocracyLock[]>(api.derive.democracy?.locks, [address]);
-  const recoveryInfo = useCall<RecoveryConfig | null>(api.query.recovery?.recoverable, [address], transformRecovery);
-  const multiInfos = useMultisigApprovals(address);
-  const proxyInfo = useProxies(address);
+  const accountId32 = u8aToHex(u8aFixLength(publicKey, 256));
+  const balancesAll = useBalancesAll(accountId32);
+  const stakingInfo = useStakingInfo(accountId32);
+  const democracyLocks = useCall<DeriveDemocracyLock[]>(api.derive.democracy?.locks, [accountId32]);
+  const recoveryInfo = useCall<RecoveryConfig | null>(api.query.recovery?.recoverable, [accountId32], transformRecovery);
+  const multiInfos = useMultisigApprovals(accountId32);
+  const proxyInfo = useProxies(accountId32);
   const { flags: { isDevelopment, isEditable, isEthereum, isExternal, isHardware, isInjected, isMultisig, isProxied }, genesisHash, identity, name: accName, onSetGenesisHash, tags } = useAccountInfo(address);
   const convictionLocks = useAccountLocks('referenda', 'convictionVoting', address);
   const [{ democracyUnlockTx }, setDemocracyUnlock] = useState<DemocracyUnlockable>({ democracyUnlockTx: null, ids: [] });

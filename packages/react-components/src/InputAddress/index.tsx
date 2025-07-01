@@ -262,7 +262,9 @@ class InputAddress extends React.PureComponent<Props, State> {
   private getFiltered (): Option[] {
     const { filter, optionsAll, type = DEFAULT_TYPE, withExclude = false } = this.props;
 
-    return !optionsAll
+    console.log({optionsAll});
+
+    const ret = !optionsAll
       ? []
       : dedupe(optionsAll[type]).filter(({ value }) =>
         !filter || (
@@ -273,6 +275,8 @@ class InputAddress extends React.PureComponent<Props, State> {
           )
         )
       );
+    console.log({ret});
+    return ret;
   }
 
   private onChange = (address: string): void => {
