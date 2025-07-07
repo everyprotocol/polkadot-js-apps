@@ -21,10 +21,12 @@ function defaultT (keyOrText: string, text?: string | TOptions, options?: TOptio
     keyOrText
   );
 }
-
+const soloOnly = true;
 export function createWsEndpoints (t: TFunction = defaultT, firstOnly = false, withSort = true): LinkOption[] {
   return [
     ...createCustom(t),
+    ...(soloOnly ? [] : [
+
     {
       isDisabled: false,
       isHeader: true,
@@ -64,6 +66,7 @@ export function createWsEndpoints (t: TFunction = defaultT, firstOnly = false, w
       value: ''
     },
     ...expandEndpoints(t, [testRelayPaseo], firstOnly, withSort),
+    ]),
     {
       isDisabled: false,
       isHeader: true,
