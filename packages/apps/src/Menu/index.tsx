@@ -179,7 +179,7 @@ const StyledDiv = styled.div`
   }
 
   &.isLoading {
-    background: #999 !important;
+    background: #8DD8DD !important;
 
     .menuActive {
       background: var(--bg-page);
